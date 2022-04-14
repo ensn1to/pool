@@ -5,7 +5,15 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 )
+
+type PoolConfig struct {
+	InitialCap  int // inital capacity
+	MaxCap      int // max capacity
+	Factory     Factory
+	IdleTimeout time.Duration
+}
 
 // channelPool implements the Pool interface based on buffered channels.
 type channelPool struct {
@@ -26,20 +34,20 @@ type Factory func() (net.Conn, error)
 // until a new Get() is called. During a Get(), If there is no new connection
 // available in the pool, a new connection will be created via the Factory()
 // method.
-func NewChannelPool(initialCap, maxCap int, factory Factory) (Pool, error) {
-	if initialCap < 0 || maxCap <= 0 || initialCap > maxCap {
+func NewChannelPool(config *PoolConfig) (Pool, error) {
+	if config.InitialCap < 0 || config.MaxCap <= 0 || config.InitialCap > config.MaxCap {
 		return nil, errors.New("invalid capacity settings")
 	}
 
 	c := &channelPool{
-		conns:   make(chan net.Conn, maxCap),
-		factory: factory,
+		conns:   make(chan net.Conn, config.MaxCap),
+		factory: config.Factory,
 	}
 
 	// create initial connections, if something goes wrong,
 	// just close the pool error out.
-	for i := 0; i < initialCap; i++ {
-		conn, err := factory()
+	for i := 0; i < config.InitialCap; i++ {
+		conn, err := config.Factory()
 		if err != nil {
 			c.Close()
 			return nil, fmt.Errorf("factory is not able to fill the pool: %s", err)
