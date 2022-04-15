@@ -161,6 +161,29 @@ func TestPool_UsedCapacity(t *testing.T) {
 	}
 }
 
+func TestPool_Clsoe_2(t *testing.T) {
+	p, _ := newChannelPool()
+
+	c := p.(*channelPool)
+
+	if c.conns != nil {
+		t.Logf("before close conns channel pool is not nil", c.conns)
+	}
+
+	t.Log("get conn before close")
+	c.Get()
+
+	p.Close()
+
+	if c.conns != nil {
+		t.Logf("after close conns channel pool is not nil", c.conns)
+	}
+
+	t.Log("get conn after close")
+
+	c.Get()
+}
+
 func TestPool_Close(t *testing.T) {
 	p, _ := newChannelPool()
 
